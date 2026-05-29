@@ -75,7 +75,7 @@ export default function Home() {
   }
 
   function getAssignedJuz(startJuz: number, cycleNumber: number) {
-    return ((startJuz + cycleNumber - 2) % 30) + 1;
+    return ((startJuz + cycleNumber - 3) % 30) + 1;
   }
 
   function formatDateRange(cycle: HatmCycle) {

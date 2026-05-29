@@ -85,7 +85,7 @@ export default function ProgressPage() {
   }
 
   function getAssignedJuz(startJuz: number, cycleNumber: number) {
-    return ((startJuz + cycleNumber - 2) % 30) + 1;
+    return ((startJuz + cycleNumber - 3) % 30) + 1;
   }
 
   const completedCount = completedIds.size;
