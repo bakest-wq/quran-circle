@@ -1,65 +1,270 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '../src/lib/supabase';
+
+type Participant = {
+  id: number;
+  name: string;
+  position: number;
+  start_juz: number;
+};
+
+type HatmCycle = {
+  id: number;
+  cycle_number: number;
+  start_date: string;
+  end_date: string;
+};
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [selectedUser, setSelectedUser] = useState<Participant | null>(null);
+  const [activeCycle, setActiveCycle] = useState<HatmCycle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [completed, setCompleted] = useState(false);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    initApp();
+
+    window.addEventListener('pageshow', initApp);
+
+    return () => {
+      window.removeEventListener('pageshow', initApp);
+    };
+  }, []);
+
+  async function initApp() {
+    try {
+      const savedUser = localStorage.getItem('quran_circle_user');
+
+      const { data: users } = await supabase
+        .from('participants')
+        .select('id, name, position, start_juz')
+        .eq('active', true)
+        .order('position');
+
+      const freshList = users || [];
+      setParticipants(freshList);
+
+      // Refresh selectedUser from DB so start_juz is always current
+      if (savedUser) {
+        const parsed: Participant = JSON.parse(savedUser);
+        const fresh = freshList.find((u) => u.id === parsed.id);
+        if (fresh) {
+          setSelectedUser(fresh);
+          localStorage.setItem('quran_circle_user', JSON.stringify(fresh));
+        }
+      }
+
+      const { data: cycles } = await supabase
+        .from('hatm_cycles')
+        .select('id, cycle_number, start_date, end_date')
+        .eq('active', true)
+        .limit(1);
+
+      if (cycles && cycles.length > 0) {
+        setActiveCycle(cycles[0]);
+      }
+    } catch (error) {
+      console.error('Init error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function getAssignedJuz(startJuz: number, cycleNumber: number) {
+    return ((startJuz + cycleNumber - 2) % 30) + 1;
+  }
+
+  function formatDateRange(cycle: HatmCycle) {
+    const start = new Date(cycle.start_date).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+
+    const end = new Date(cycle.end_date).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+
+    return `${start} - ${end}`;
+  }
+
+  function selectUser(user: Participant) {
+    localStorage.setItem('quran_circle_user', JSON.stringify(user));
+    setSelectedUser(user);
+    setCompleted(false);
+    setMessage('');
+  }
+
+  function changeUser() {
+    localStorage.removeItem('quran_circle_user');
+    setSelectedUser(null);
+    setCompleted(false);
+    setMessage('');
+  }
+
+  async function markAsCompleted() {
+    if (!selectedUser) {
+      setMessage('Қатысушы таңдалмаған');
+      return;
+    }
+
+    if (!activeCycle) {
+      setMessage('Белсенді хатым табылмады');
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from('completions')
+      .select('id')
+      .eq('participant_id', selectedUser.id)
+      .eq('cycle_id', activeCycle.id)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      setCompleted(true);
+      setMessage('Бұл хатым бойынша бұрын белгіленген ✅');
+      return;
+    }
+
+    const { error } = await supabase.from('completions').insert([
+      {
+        participant_id: selectedUser.id,
+        cycle_id: activeCycle.id,
+        completed: true,
+      },
+    ]);
+
+    if (error) {
+      setMessage('Сақталмады: ' + error.message);
+      return;
+    }
+
+    setCompleted(true);
+    setMessage('Сақталды ✅');
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        Жүктелуде...
+      </main>
+    );
+  }
+
+  if (!selectedUser) {
+    return (
+      <main className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-md mx-auto">
+          <h1 className="text-3xl font-bold text-center mb-2">
+            📖 Qur&apos;an Circle
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          {activeCycle && (
+            <p className="text-center text-green-500 font-semibold mb-3">
+              {formatDateRange(activeCycle)}
+            </p>
+          )}
+
+          <p className="text-center text-gray-400 mb-8">
+            Атыңызды таңдаңыз
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+          <div className="space-y-3">
+            {participants.map((user) => (
+              <button
+                key={user.id}
+                onClick={() => selectUser(user)}
+                className="w-full bg-zinc-900 hover:bg-green-600 transition rounded-2xl p-4 text-left font-semibold"
+              >
+                {user.position}. {user.name}
+              </button>
+            ))}
+          </div>
         </div>
       </main>
-    </div>
+    );
+  }
+
+  const currentJuz = activeCycle
+    ? getAssignedJuz(selectedUser.start_juz, activeCycle.cycle_number)
+    : selectedUser.start_juz;
+
+  return (
+    <main className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-md mx-auto text-center">
+        <h1 className="text-3xl font-bold mb-2">
+          📖 Qur&apos;an Circle
+        </h1>
+
+        <p className="text-gray-400">
+          Ассаляму алейкум
+        </p>
+
+        {activeCycle && (
+          <p className="text-green-500 font-semibold mb-8">
+            {formatDateRange(activeCycle)}
+          </p>
+        )}
+
+        <div className="bg-zinc-900 rounded-3xl p-6 mb-6">
+          <p className="text-gray-400 mb-2">Қатысушы</p>
+
+          <h2 className="text-2xl font-bold">
+            {selectedUser.name}
+          </h2>
+
+          <div className="mt-6 border-t border-zinc-700 pt-6">
+            <p className="text-gray-400 mb-2">
+              Осы аптадағы параңыз
+            </p>
+
+            <h3 className="text-4xl font-bold text-green-500">
+              {currentJuz}-пара
+            </h3>
+          </div>
+        </div>
+
+        {message && (
+          <p className="mb-4 text-green-400 font-semibold">{message}</p>
+        )}
+
+        <button
+          onClick={markAsCompleted}
+          disabled={completed}
+          className={`w-full rounded-2xl p-5 text-xl font-bold transition ${
+            completed
+              ? 'bg-zinc-700'
+              : 'bg-green-600 hover:bg-green-700'
+          }`}
+        >
+          {completed ? '✅ Белгіленді' : '✅ Оқыдым'}
+        </button>
+
+        <button
+          onClick={changeUser}
+          className="mt-6 text-sm text-gray-500 underline"
+        >
+          Атымды өзгерту
+        </button>
+
+        <a
+          href="/progress"
+          className="block mt-4 text-green-500 underline"
+        >
+          📊 Прогрессті көру
+        </a>
+
+        <a
+          href="/admin"
+          className="block mt-3 text-gray-500 underline"
+        >
+          ⚙️ Admin
+        </a>
+      </div>
+    </main>
   );
 }
