@@ -144,20 +144,23 @@ export default function ProgressPage() {
             return (
               <div
                 key={user.id}
-                className={`rounded-2xl p-4 flex items-center justify-between ${
+                className={`rounded-2xl px-4 py-3 flex items-center gap-3 ${
                   isCompleted ? 'bg-green-700' : 'bg-zinc-900'
                 }`}
               >
-                <div className="text-left">
-                  <p className="font-semibold">
-                    {user.position}. {user.name}
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    {juz}-пара
-                  </p>
-                </div>
+                <span className="text-gray-400 text-sm w-6 shrink-0 text-right">
+                  {user.position}
+                </span>
 
-                <span className="text-xl">
+                <span className="font-semibold flex-1 truncate">
+                  {user.name}
+                </span>
+
+                <span className="text-sm text-gray-300 shrink-0">
+                  {juz}-пара
+                </span>
+
+                <span className="text-lg shrink-0">
                   {isCompleted ? '✅' : '⏳'}
                 </span>
               </div>
