@@ -46,11 +46,17 @@ export default function InstallPage() {
   <h2 className="text-lg font-bold mb-4">🤖 Android / Chrome</h2>
 
   <ol className="space-y-3">
-    {steps.android.map((step, i) => (
-      <li key={i} className="flex items-start gap-3">
-        ...
-      </li>
-    ))}
+  {steps.android.map((step, i) => (
+  <li key={i} className="flex items-start gap-3">
+    <span className="shrink-0 w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-sm font-bold">
+      {i + 1}
+    </span>
+
+    <span className="text-gray-200 text-sm leading-relaxed pt-0.5">
+      {step}
+    </span>
+  </li>
+))}
   </ol>
 </div>
 
