@@ -252,18 +252,25 @@ export default function Home() {
         </button>
 
         <a
-          href="/progress"
-          className="block mt-4 text-green-500 underline"
-        >
-          📊 Прогрессті көру
-        </a>
+  href="/progress"
+  className="block mt-4 text-green-500 underline"
+>
+  📊 Прогрессті көру
+</a>
 
-        <a
-          href="/admin"
-          className="block mt-3 text-gray-500 underline"
-        >
-          ⚙️ Admin
-        </a>
+<a
+  href="/admin"
+  className="block mt-3 text-gray-500 underline"
+>
+  ⚙️ Admin
+</a>
+
+<a
+  href="/install"
+  className="block mt-3 text-blue-500 underline"
+>
+  📱 Телефонға орнату
+</a>
       </div>
     </main>
   );
